@@ -13,42 +13,33 @@ import java.util.*;
 
 import static java.util.Collections.unmodifiableList;
 import static org.neo4j.graphalgo.CommonEvaluators.doubleCostEvaluator;
+import static org.neo4j.helpers.collection.Iterators.iteratorsEqual;
 
 public class MultiWeightedPathImpl implements MultiWeightedPath, Cloneable {
-    private static List<PropertyKey> propertyKeyList;
+    private static List<PropertyKey> propertyKeyList = new LinkedList<>();
     private final LinkedList<Relationship> relationships;
     private final LinkedList<Node> nodes;
-    private final Map<PropertyKey,Double> weight;
-    private final
-    class ReverseIterator<E> implements Iterator<E>{
-        private ListIterator<E> listIterator;
-        ReverseIterator(List<E> list){
-            this.listIterator = list.listIterator(list.size());
-        }
-        @Override
-        public boolean hasNext() {
-            return listIterator.hasPrevious();
-        }
+    private final Map<PropertyKey, Double> weight;
 
-        @Override
-        public E next() {
-            return listIterator.previous();
-        }
-    }
-
-    MultiWeightedPathImpl(Node node, List<PropertyKey> propertyKeyList){
-        if(Objects.nonNull(propertyKeyList)){
+    MultiWeightedPathImpl(Node node, List<PropertyKey> propertyKeyList) {
+        if (Objects.nonNull(propertyKeyList)) {
             MultiWeightedPathImpl.propertyKeyList = propertyKeyList;
         }
         nodes = new LinkedList<>();
         relationships = new LinkedList<>();
-        weight = new HashMap<>((int)(propertyKeyList.size()*1.34)+1);
+        weight = new HashMap<>((int) (propertyKeyList.size() * 1.34) + 1);
 
         nodes.add(node);
 
-        for(PropertyKey propertyKey:propertyKeyList){
-            weight.put(propertyKey,0.0);
+        for (PropertyKey propertyKey : propertyKeyList) {
+            weight.put(propertyKey, 0.0);
         }
+    }
+
+    private MultiWeightedPathImpl(LinkedList<Relationship> relationships, LinkedList<Node> nodes, Map<PropertyKey, Double> weight) {
+        this.relationships = relationships;
+        this.nodes = nodes;
+        this.weight = weight;
     }
 
     @Override
@@ -68,22 +59,22 @@ public class MultiWeightedPathImpl implements MultiWeightedPath, Cloneable {
 
     @Override
     public Iterable<Relationship> relationships() {
-        return ()-> unmodifiableList(relationships).iterator();
+        return () -> unmodifiableList(relationships).iterator();
     }
 
     @Override
     public Iterable<Relationship> reverseRelationships() {
-        return ()->new ReverseIterator<>(unmodifiableList(relationships));
+        return () -> new ReverseIterator<>(unmodifiableList(relationships));
     }
 
     @Override
     public Iterable<Node> nodes() {
-        return ()->unmodifiableList(nodes).iterator();
+        return () -> unmodifiableList(nodes).iterator();
     }
 
     @Override
     public Iterable<Node> reverseNodes() {
-        return ()->new ReverseIterator<>(unmodifiableList(nodes));
+        return () -> new ReverseIterator<>(unmodifiableList(nodes));
     }
 
     @Override
@@ -91,13 +82,38 @@ public class MultiWeightedPathImpl implements MultiWeightedPath, Cloneable {
         return relationships.size();
     }
 
+    @NotNull
     @Override
     public Iterator<PropertyContainer> iterator() {
-        return null;
+        return new Iterator<PropertyContainer>() {
+            Iterator<? extends PropertyContainer> current = nodes().iterator();
+            Iterator<? extends PropertyContainer> next = relationships().iterator();
+
+            @Override
+            public boolean hasNext() {
+                return current.hasNext();
+            }
+
+            @Override
+            public PropertyContainer next() {
+                try {
+                    return current.next();
+                } finally {
+                    Iterator<? extends PropertyContainer> temp = current;
+                    current = next;
+                    next = temp;
+                }
+            }
+
+            @Override
+            public void remove() {
+                next.remove();
+            }
+        };
     }
 
-    public @NotNull MultiWeightedPathImpl append(Relationship relationship){
-        if(Objects.isNull(relationship)||!this.endNode().equals(relationship.getStartNode())){
+    public @NotNull MultiWeightedPathImpl append(Relationship relationship) {
+        if (Objects.isNull(relationship) || !this.endNode().equals(relationship.getStartNode())) {
             throw new IllegalArgumentException("The startNode of relationship does not match the endNode of the path");
         }
 
@@ -106,17 +122,17 @@ public class MultiWeightedPathImpl implements MultiWeightedPath, Cloneable {
         return path;
     }
 
-    private void addRelationship(@NotNull Relationship relationship){
+    private void addRelationship(@NotNull Relationship relationship) {
         this.nodes.add(relationship.getEndNode());
         this.relationships.add(relationship);
 
-        for(PropertyKey propertyKey:propertyKeyList){
+        for (PropertyKey propertyKey : propertyKeyList) {
             CostEvaluator<Double> costEvaluator = doubleCostEvaluator(propertyKey.NAME);
             Double oldCost = weight.get(propertyKey);
-            Double newCost = costEvaluator.getCost(relationship,Direction.OUTGOING);
+            Double newCost = costEvaluator.getCost(relationship, Direction.OUTGOING);
             oldCost = Objects.nonNull(oldCost) ? oldCost : 0.0;
             newCost = Objects.nonNull(newCost) ? newCost : 0.0;
-            weight.put(propertyKey,oldCost+newCost);
+            weight.put(propertyKey, oldCost + newCost);
         }
     }
 
@@ -140,17 +156,14 @@ public class MultiWeightedPathImpl implements MultiWeightedPath, Cloneable {
     @Override
     public boolean equals(Object obj) {
 
-        if(! (obj instanceof MultiWeightedPathImpl)){
+        if (!(obj instanceof MultiWeightedPathImpl)) {
             return false;
         }
 
-        return relationships.equals(((MultiWeightedPathImpl) obj).getRelationships());
-    }
+        MultiWeightedPathImpl path = (MultiWeightedPathImpl) obj;
 
-    private MultiWeightedPathImpl(LinkedList<Relationship> relationships, LinkedList<Node> nodes, Map<PropertyKey,Double> weight){
-        this.relationships=relationships;
-        this.nodes = nodes;
-        this.weight = weight;
+        return Objects.equals(path.startNode(), this.startNode())
+                && iteratorsEqual(this.relationships().iterator(), path.relationships().iterator());
     }
 
     @Override
@@ -165,5 +178,24 @@ public class MultiWeightedPathImpl implements MultiWeightedPath, Cloneable {
     @Override
     public String toString() {
         return Paths.defaultPathToString(this);
+    }
+
+    private final
+    class ReverseIterator<E> implements Iterator<E> {
+        private ListIterator<E> listIterator;
+
+        ReverseIterator(List<E> list) {
+            this.listIterator = list.listIterator(list.size());
+        }
+
+        @Override
+        public boolean hasNext() {
+            return listIterator.hasPrevious();
+        }
+
+        @Override
+        public E next() {
+            return listIterator.previous();
+        }
     }
 }

@@ -1,6 +1,6 @@
 package gdma.routeSkyline.impl;
 
-public class PropertyKey implements Comparable<PropertyKey>{
+public class PropertyKey implements Comparable<PropertyKey> {
     public final String NAME;
 
     public PropertyKey(String NAME) {
@@ -8,11 +8,11 @@ public class PropertyKey implements Comparable<PropertyKey>{
     }
 
     @Override
-    public boolean equals(Object anObject){
+    public boolean equals(Object anObject) {
         if (this == anObject) {
             return true;
         }
-        if(anObject instanceof PropertyKey){
+        if (anObject instanceof PropertyKey) {
             return this.NAME.equals(((PropertyKey) anObject).NAME);
         }
         return false;
