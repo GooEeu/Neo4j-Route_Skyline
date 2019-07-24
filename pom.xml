@@ -49,6 +49,7 @@
       <artifactId>neo4j-graph-algo</artifactId>
       <version>${neo4j.version}</version>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/org.neo4j.community/it-test-support -->
     <dependency>
       <groupId>org.neo4j.community</groupId>
       <artifactId>it-test-support</artifactId>
@@ -76,7 +77,7 @@
           <version>16.0.2</version>
           <scope>compile</scope>
       </dependency>
-      <!-- https://mvnrepository.com/artifact/org.neo4j.community/it-test-support -->
+
 
 
   </dependencies>

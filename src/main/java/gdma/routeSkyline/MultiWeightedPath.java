@@ -16,4 +16,5 @@ public interface MultiWeightedPath extends Path {
      * @return a MultiWeightedPath that will attach the relathionship at the end
      */
     MultiWeightedPath append(Relationship relationship);
+
 }
