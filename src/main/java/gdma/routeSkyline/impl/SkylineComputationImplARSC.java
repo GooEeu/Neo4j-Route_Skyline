@@ -1,6 +1,8 @@
 package gdma.routeSkyline.impl;
 
+import gdma.routeSkyline.LowerBoundEstimator;
 import gdma.routeSkyline.MultiWeightedPath;
+import gdma.routeSkyline.SkylineComputation;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.PathExpander;
@@ -12,7 +14,6 @@ import java.util.*;
 
 public class SkylineComputationImplARSC implements SkylineComputation {
     private final List<PropertyKey> propertyKeyList;
-    //private final Map<Node,Map<PropertyKey,Double>> lowerBounds;
     private final LowerBoundEstimator<Map<PropertyKey, Double>> estimator;
     private PathExpander pathExpander;
 
@@ -21,7 +22,6 @@ public class SkylineComputationImplARSC implements SkylineComputation {
                                LowerBoundEstimator<Map<PropertyKey, Double>> estimator) {
         this.propertyKeyList = propertyKeyList;
         this.pathExpander = expander;
-        //this.lowerBounds = lowerBounds;
         this.estimator = estimator;
 
     }
@@ -52,44 +52,26 @@ public class SkylineComputationImplARSC implements SkylineComputation {
             Node vi = qnode.poll();
 
             List<MultiWeightedPath> subroutes = subRoutesMap.get(vi);
-            /// Thinking this is not needed, as eachtime we do qnode.append, we do updateSkylineCollection()
-            /*if(Objects.isNull(subroutes)){
-                subroutes = new LinkedList<>();
-                subRoutesMap.put(vi,subroutes);
-            }*/
+
             Iterator<MultiWeightedPath> subroutesIterator = subroutes.iterator();
             while (subroutesIterator.hasNext()) {
                 MultiWeightedPath subroute = subroutesIterator.next();
                 Node subrouteNode = subroute.endNode();
-                Map<PropertyKey, Double> weight = subroute.getWeight();
                 Map<PropertyKey, Double> lowerbound = estimator.getLowerBound(subrouteNode);
-
-                //SkylineComparator.PropertyComparator propertyComparator = skylineComparator.getPropertyComparator();
 
                 boolean dominated = isDominated(skylineRoutes, subroute, lowerbound);
 
                 if (dominated) {
                     subroutesIterator.remove();
                 } else {
-                    /*List<MultiWeightedPath> processList;
-                    if(!flag.contains(subroute)){
-                        Stream<Relationship> stream = StreamSupport.<Relationship>stream(pathExpander.expand(subroute, BranchState.NO_STATE).spliterator(), false);
-                        processList = stream.map(subroute::append)
-                                .collect(Collectors.toList());
-
-                    } else {
-                        processList = new LinkedList<>();
-                        //processList.add(subroute);
-                    }*/
                     if (flag.contains(subroute)) {
                         continue;
                     }
                     flag.add(subroute);
-                    Iterator<Relationship> expandIterator = pathExpander.expand(subroute, BranchState.NO_STATE).iterator();
-                    //for (MultiWeightedPath p1: processList){
-                    while (expandIterator.hasNext()) {
-                        MultiWeightedPath p1 = subroute.append(expandIterator.next());
-                        //flag.add(p1);
+
+                    for (Relationship relationship : (Iterable<Relationship>) pathExpander.expand(subroute, BranchState.NO_STATE)) {
+                        MultiWeightedPath p1 = subroute.append(relationship);
+
 
                         if (endNode.equals(p1.endNode())) {
                             if (!isDominated(p1, skylineRoutes)) {
@@ -124,9 +106,8 @@ public class SkylineComputationImplARSC implements SkylineComputation {
     }
 
     private boolean isDominated(MultiWeightedPath subroute, Collection<MultiWeightedPath> skylineroutes) {
-        boolean match = skylineroutes.parallelStream()
+        return skylineroutes.parallelStream()
                 .anyMatch(skylineRoute -> isDominated(skylineRoute, subroute, null));
-        return match;
     }
 
     private boolean isDominated(Collection<MultiWeightedPath> skylineroutes, MultiWeightedPath subroute, Map<PropertyKey, Double> lowerbound) {
@@ -135,8 +116,8 @@ public class SkylineComputationImplARSC implements SkylineComputation {
     }
 
     /**
-     * @param skylineRoute
-     * @param toBeComparedRoute
+     * @param skylineRoute      the "already-inserted" route
+     * @param toBeComparedRoute the route to be compared
      * @return if the <code>toBeComparedRoute</code> is dominated by the <code>skylineRoute</code>
      */
     private boolean isDominated(MultiWeightedPath skylineRoute, MultiWeightedPath toBeComparedRoute, Map<PropertyKey, Double> lowerbound) {

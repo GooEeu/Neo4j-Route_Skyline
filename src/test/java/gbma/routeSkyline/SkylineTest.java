@@ -9,8 +9,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.neo4j.graphdb.GraphDatabaseService;
 
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.fail;
 
 class SkylineTest {
 
@@ -82,7 +84,7 @@ class SkylineTest {
     @Test
     public void testSkyline() {
         TestDatabase.testAllPathsCall(db,
-                "MATCH (from {name:'n0'}), (to {name:'n6'}) " +
+                "MATCH (from {name:'n1'}), (to {name:'n6'}) " +
                         "CALL gdma.routeSkyline.stream(from, to, 'WAY','time; dist') yield path " +
                         "RETURN path",
                 row -> {
@@ -97,27 +99,31 @@ class SkylineTest {
     }
 
     @Test
-    public void testSkylineWithWeight() {
+    public void testSkylineWeightCondition() {
+        final LinkedList<Map<String, Double>> list = new LinkedList<>();
         TestDatabase.testAllPathsCall(db,
                 "MATCH (from {name:'n1'}), (to {name:'n6'}) " +
                         "CALL gdma.routeSkyline.stream(from, to, 'WAY','time; dist') yield path, weight " +
                         "RETURN path, weight",
                 row -> {
                     if (Objects.nonNull(row)) {
-                        System.out.println(row.get("path").toString());
                         try {
-                            ((Map<String, Double>) row.get("weight")).forEach((k, v) -> {
-                                System.out.print(k + ":" + v + "; ");
-                            });
-                            System.out.println();
+                            list.add((Map<String, Double>) row.get("weight"));
                         } catch (ClassCastException e) {
                             e.printStackTrace();
+                            fail();
                         }
                     } else {
                         System.out.println("no path found");
                     }
-
                 }
         );
+        list.forEach(map -> {
+            List<Map<String, Double>> newList = new LinkedList<>(list);
+            map.forEach((s, d) -> {
+                newList.removeIf(stringDoubleMap -> stringDoubleMap.get(s) >= d);
+            });
+            assertEquals(0, newList.size());
+        });
     }
 }	

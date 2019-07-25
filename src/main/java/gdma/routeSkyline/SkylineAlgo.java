@@ -15,27 +15,25 @@ import java.util.stream.Stream;
 public class SkylineAlgo {
 
     /**
-     *
-     * @param startNode
-     * @param endNode
-     * @param propertyKeys params for comparison with the ranking(DESC or ASC), default ASC.
-     *               params not found in the edge will be considered as 0 by ASC,
-     *                  and MAX by DESC
-     *               params should be separated to the ranking by a space,
-     *                  and to another param by a semicolon.
+     * @param startNode    the startNode(aka sourceNode)
+     * @param endNode      the startNode(aka targetNode)
+     * @param relType      the relation type to traverse
+     * @param propertyKeys the key of the property, can be multiple, divide by semicolon
+     * @return a collection of paths and weights(Map between propertyKey and weight),
+     * where each of them has at least one weight of property that is no worse than any other path.
      */
     @Procedure(mode = Mode.READ)
     @Description("gdma.routeSkyline.stream(start, end, 'WAY', 'cost1; cost2;...') YIELD path, weight")
     public Stream<SkylineResults> stream(@Name("startNode") org.neo4j.graphdb.Node startNode,
                                          @Name("endNode") Node endNode,
                                          @Name("relationshipType") String relType,
-                                         @Name("params") String propertyKeys){
+                                         @Name("params") String propertyKeys) {
 
-        if(Objects.isNull(propertyKeys)||propertyKeys==""){
-            return Stream.<SkylineResults>empty();
+        if (Objects.isNull(propertyKeys) || Objects.equals(propertyKeys, "")) {
+            return Stream.empty();
         }
 
-        return SkylineResults.streamPathResult(startNode,endNode,relType, propertyKeys.split(";"));
+        return SkylineResults.streamPathResult(startNode, endNode, relType, propertyKeys.split(";"));
     }
 
 }
