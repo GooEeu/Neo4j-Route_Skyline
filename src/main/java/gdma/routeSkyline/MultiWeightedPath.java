@@ -12,8 +12,9 @@ public interface MultiWeightedPath extends Path {
 
     /**
      * attach a relationship at the end of the path
-     * @param relationship that has a startnode equal to the endnode of this MultiWeightedPath
-     * @return a MultiWeightedPath that will attach the relathionship at the end
+     *
+     * @param relationship that has a startNode equal to the endNode of this MultiWeightedPath
+     * @return a MultiWeightedPath that will attach the relationship at the end
      */
     MultiWeightedPath append(Relationship relationship);
 

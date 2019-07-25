@@ -1,5 +1,6 @@
 package gdma.routeSkyline.impl;
 
+import gdma.routeSkyline.LowerBoundEstimator;
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;
 import org.neo4j.graphalgo.WeightedPath;
@@ -11,17 +12,15 @@ import java.util.*;
 import static org.neo4j.graphalgo.CommonEvaluators.doubleCostEvaluator;
 
 public class LowerBoundEstimatorImplDijkstra implements LowerBoundEstimator<Map<PropertyKey, Double>> {
-    final Node startNode;
-    final Node endNode;
-    final Collection<PropertyKey> propertyKeyList;
+    private final Node endNode;
+    private final Collection<PropertyKey> propertyKeyList;
     private final HashMap<Node, Map<PropertyKey, Double>> nodeToLowerBounds = new HashMap<>();
     private final Map<PropertyKey, PathFinder<WeightedPath>> pathFinderHashMap = new HashMap<>();
-    PathExpander pathExpander;
+    private PathExpander pathExpander;
 
     LowerBoundEstimatorImplDijkstra(Collection<PropertyKey> propertyKeyList, PathExpander pathExpander, Node startNode, Node endNode) {
         this.propertyKeyList = propertyKeyList;
         this.pathExpander = pathExpander.reverse();
-        this.startNode = startNode;
         this.endNode = endNode;
         buildPathFinderHashMap();
     }

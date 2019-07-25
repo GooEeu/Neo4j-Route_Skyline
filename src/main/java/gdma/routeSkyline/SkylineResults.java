@@ -11,9 +11,8 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class SkylineResults {
-    private static PathFinder<MultiWeightedPath> skylineAlgo;
     public final Path path;
-    public final Map<String,Double> weight;
+    public final Map<String, Double> weight;
 
     private SkylineResults(MultiWeightedPath path) {
         this.path = path;
@@ -21,8 +20,8 @@ public class SkylineResults {
         path.getWeight().forEach((propertyKey, cost) -> weight.put(propertyKey.NAME, cost));
     }
 
-    public static Stream<SkylineResults> streamPathResult(Node startNode, Node endNode, String relType, String[] propertyKeys) {
-        skylineAlgo=new SkylinePathFinderImpl(relType, propertyKeys);
+    static Stream<SkylineResults> streamPathResult(Node startNode, Node endNode, String relType, String[] propertyKeys) {
+        PathFinder<MultiWeightedPath> skylineAlgo = new SkylinePathFinderImpl(relType, propertyKeys);
         return StreamSupport.stream(skylineAlgo.findAllPaths(startNode, endNode).spliterator(), false).map(SkylineResults::new);
     }
 

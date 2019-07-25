@@ -1,4 +1,4 @@
-package gdma.routeSkyline.impl;
+package gdma.routeSkyline;
 
 import org.neo4j.graphdb.Node;
 

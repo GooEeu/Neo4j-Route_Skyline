@@ -1,35 +1,39 @@
 package gdma.routeSkyline.impl;
 
+import gdma.routeSkyline.LowerBoundEstimator;
 import gdma.routeSkyline.MultiWeightedPath;
+import gdma.routeSkyline.SkylineComputation;
 import gdma.routeSkyline.SkylinePathFinder;
 import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.traversal.TraversalMetadata;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 public class SkylinePathFinderImpl implements SkylinePathFinder {
-    //final Map<Node,Map<PropertyKey,Double>> weights;
     private final static List<PropertyKey> propertyKeyList = new LinkedList<>();
     private static Pattern pattern = Pattern.compile("^(\\w*)$");
-    //Don't directly get from this map. Call <code>getLowerBound()</code> instead.
-    //private final Map<Node,Map<PropertyKey,Double>> lowerBounds;
+
     private final PathExpander pathExpander;
     private final RelationshipType relType;
-    private Metadata lastMetadata;
+    //Don't know what exactly MetaData do
+    private TraversalMetadata lastMetadata;
 
     public SkylinePathFinderImpl(String relType, String[] propertyKeys) {
         this.relType = RelationshipType.withName(relType);
 
         generatePropertyKeySet(propertyKeys);
         pathExpander = buildPathExpander();
-
+        lastMetadata = new Metadata();
     }
 
 
     @Override
     public MultiWeightedPath findSinglePath(Node start, Node end) {
-        lastMetadata = new Metadata();
+
         return this.findAllPaths(start, end).iterator().next();
     }
 
@@ -53,18 +57,19 @@ public class SkylinePathFinderImpl implements SkylinePathFinder {
 
     }
 
-    private PathExpander<Object> buildPathExpander() {
+    private PathExpander buildPathExpander() {
         return PathExpanderBuilder.empty().add(relType, Direction.OUTGOING).build();
     }
 
     @Override
     public TraversalMetadata metadata() {
-        return null;
+        // TODO: 19.07.25 check how to write the Metadata
+        return lastMetadata;
     }
 
     private static class Metadata implements TraversalMetadata {
-        private int rels;
-        private int paths;
+        int rels;
+        int paths;
 
         @Override
         public int getNumberOfPathsReturned() {
