@@ -108,7 +108,9 @@ class SkylineTest {
                 row -> {
                     if (Objects.nonNull(row)) {
                         try {
-                            list.add((Map<String, Double>) row.get("weight"));
+                            @SuppressWarnings("unchecked")
+                            Map<String,Double> weight = (Map<String, Double>) row.get("weight");
+                            list.add(weight);
                         } catch (ClassCastException e) {
                             e.printStackTrace();
                             fail();
@@ -120,9 +122,7 @@ class SkylineTest {
         );
         list.forEach(map -> {
             List<Map<String, Double>> newList = new LinkedList<>(list);
-            map.forEach((s, d) -> {
-                newList.removeIf(stringDoubleMap -> stringDoubleMap.get(s) >= d);
-            });
+            map.forEach((s, d) -> newList.removeIf(stringDoubleMap -> stringDoubleMap.get(s) >= d));
             assertEquals(0, newList.size());
         });
     }
